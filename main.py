@@ -1,79 +1,44 @@
-import streamlit as st
-
-# Configuração para aproveitar melhor a tela do celular
-st.set_page_config(page_title="Checklist Bus", layout="centered")
-
-# CSS para deixar os botões menores e quadrados (estilo poltrona)
-st.markdown("""
-    <style>
-    div.stButton > button {
-        width: 100%;
-        height: 45px;
-        padding: 0px;
-        margin: 0px;
-        font-size: 14px;
-    }
-    [data-testid="column"] {
-        padding: 1px !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-st.title("🚌 Conferência")
-
-if 'ocupadas' not in st.session_state:
-    st.session_state.ocupadas = set()
-
-# Configuração da Frota
-tipo_onibus = st.selectbox("Frota", ["42 Lugares", "46 Lugares", "50 Lugares"])
-total_lugares = int(tipo_onibus.split()[0])
-
-st.write(f"**Ocupadas: {len(st.session_state.ocupadas)}**")
-
-# Criando o layout do ônibus (Janela | Corredor | Janela)
-# Usamos 5 colunas: Janela(1), Corredor(2), Janela(4), Janela(5)
-# A coluna 3 (índice 2) será o corredor vazio
-
-st.caption("Frente do Ônibus")
-
-# Calcula quantas fileiras são necessárias
-fileiras = (total_lugares // 4) + (1 if total_lugares % 4 != 0 else 0)
-
+# No lugar do loop antigo, use este:
 for f in range(fileiras):
-    cols = st.columns([1, 1, 0.5, 1, 1]) # Coluna do meio é o corredor
+    # Criamos as colunas com larguras fixas para não deixar o celular empilhar
+    c1, c2, corr, c3, c4 = st.columns([1, 1, 0.4, 1, 1]) 
     
-    # Mapeamento das poltronas para o layout 2x2
-    posicoes = [0, 1, 3, 4] # Pula o índice 2 (corredor)
-    
-    for i, pos in enumerate(posicoes):
-        num_poltrona = f * 4 + i + 1
-        
-        if num_poltrona <= total_lugares:
-            with cols[pos]:
-                is_selected = num_poltrona in st.session_state.ocupadas
-                label = f"{num_poltrona}"
-                
-                if st.button(label, key=f"p_{num_poltrona}", type="primary" if is_selected else "secondary"):
-                    if is_selected:
-                        st.session_state.ocupadas.remove(num_poltrona)
-                    else:
-                        st.session_state.ocupadas.add(num_poltrona)
-                    st.rerun()
+    # Poltrona 1 e 2 (Lado Esquerdo)
+    with c1:
+        n1 = f * 4 + 1
+        if n1 <= total_lugares:
+            is_sel = n1 in st.session_state.ocupadas
+            if st.button(f"{n1}", key=f"p{n1}", type="primary" if is_sel else "secondary"):
+                if is_sel: st.session_state.ocupadas.remove(n1)
+                else: st.session_state.ocupadas.add(n1)
+                st.rerun()
+    with c2:
+        n2 = f * 4 + 2
+        if n2 <= total_lugares:
+            is_sel = n2 in st.session_state.ocupadas
+            if st.button(f"{n2}", key=f"p{n2}", type="primary" if is_sel else "secondary"):
+                if is_sel: st.session_state.ocupadas.remove(n2)
+                else: st.session_state.ocupadas.add(n2)
+                st.rerun()
 
-st.divider()
+    # Coluna corr (Corredor) fica vazia
+    with corr:
+        st.write("")
 
-# Finalização
-manifesto = st.number_input("Qtd. no Manifesto", min_value=0, step=1)
-
-c1, c2 = st.columns(2)
-with c1:
-    if st.button("✅ Finalizar"):
-        if len(st.session_state.ocupadas) == manifesto:
-            st.success("Conferência OK!")
-        else:
-            st.error(f"Erro: {len(st.session_state.ocupadas)} no App vs {manifesto} no Papel")
-
-with c2:
-    if st.button("🗑️ Limpar"):
-        st.session_state.ocupadas = set()
-        st.rerun()
+    # Poltrona 3 e 4 (Lado Direito)
+    with c3:
+        n3 = f * 4 + 3
+        if n3 <= total_lugares:
+            is_sel = n3 in st.session_state.ocupadas
+            if st.button(f"{n3}", key=f"p{n3}", type="primary" if is_sel else "secondary"):
+                if is_sel: st.session_state.ocupadas.remove(n3)
+                else: st.session_state.ocupadas.add(n3)
+                st.rerun()
+    with c4:
+        n4 = f * 4 + 4
+        if n4 <= total_lugares:
+            is_sel = n4 in st.session_state.ocupadas
+            if st.button(f"{n4}", key=f"p{n4}", type="primary" if is_sel else "secondary"):
+                if is_sel: st.session_state.ocupadas.remove(n4)
+                else: st.session_state.ocupadas.add(n4)
+                st.rerun()
