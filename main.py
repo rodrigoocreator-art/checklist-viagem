@@ -1,92 +1,86 @@
 import streamlit as st
-import streamlit.components.v1 as components
 
 st.set_page_config(page_title="BusCheck Pro", layout="centered")
 
+# CSS Minimalista para botões em linha
+st.markdown("""
+    <style>
+    /* Força os botões a não pularem linha */
+    [data-testid="stHorizontalBlock"] {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 5px !important;
+    }
+    button {
+        width: 60px !important;
+        height: 45px !important;
+        padding: 0px !important;
+    }
+    .corredor {
+        width: 30px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
 st.title("🚌 BusCheck")
 
-# Inicializa o estado das poltronas
 if 'ocupadas' not in st.session_state:
-    st.session_state.ocupadas = []
+    st.session_state.ocupadas = set()
 
-# Configuração da Frota
-tipo_onibus = st.selectbox("Frota", ["42 Lugares", "46 Lugares", "50 Lugares"])
-total_lugares = int(tipo_onibus.split()[0])
+# Configuração simples
+total_lugares = st.number_input("Total de Poltronas", value=42, step=4)
 
-# --- LÓGICA DE CLIQUE ---
-# O HTML vai enviar o número da poltrona para o Python
-query_params = st.query_params
-if "p" in query_params:
-    polt = int(query_params["p"])
-    if polt in st.session_state.ocupadas:
-        st.session_state.ocupadas.remove(polt)
-    else:
-        st.session_state.ocupadas.append(polt)
-    # Limpa o parâmetro da URL para não ficar em loop
-    st.query_params.clear()
-    st.rerun()
+st.write(f"### Ocupadas: {len(st.session_state.ocupadas)}")
+st.caption("⬅️ Frente")
 
-# --- CONSTRUÇÃO DO MAPA EM HTML ---
-# Isso aqui força o navegador do iPhone a desenhar 4 colunas fixas
-html_code = """
-<style>
-    .bus-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr 40px 1fr 1fr;
-        gap: 8px;
-        max-width: 350px;
-        margin: auto;
-        font-family: sans-serif;
-    }
-    .seat {
-        height: 45px;
-        background-color: #f0f2f6;
-        border: 1px solid #d1d5db;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        font-weight: bold;
-        text-decoration: none;
-        color: black;
-    }
-    .seat.occupied {
-        background-color: #2e7d32;
-        color: white;
-        border: none;
-    }
-    .aisle { width: 40px; }
-</style>
-<div class="bus-grid">
-"""
-
+# Gerando as fileiras
 fileiras = (total_lugares // 4) + (1 if total_lugares % 4 != 0 else 0)
 
 for f in range(fileiras):
-    for c in range(5):
-        if c == 2: # Corredor
-            html_code += '<div class="aisle"></div>'
-        else:
-            # Lógica para pular o corredor no cálculo do número
-            col_ajustada = c if c < 2 else c - 1
-            num = f * 4 + col_ajustada + 1
-            
-            if num <= total_lugares:
-                is_occ = "occupied" if num in st.session_state.ocupadas else ""
-                # O link recarrega a página passando o número da poltrona
-                html_code += f'<a href="?p={num}" target="_self" class="seat {is_occ}">{num}</a>'
-            else:
-                html_code += '<div></div>'
+    # Criamos 5 colunas, mas a do meio é apenas um espaço
+    c1, c2, corr, c3, c4 = st.columns([1, 1, 0.5, 1, 1])
+    
+    # Poltronas
+    p_esq = [f * 4 + 1, f * 4 + 2]
+    p_dir = [f * 4 + 3, f * 4 + 4]
 
-html_code += "</div>"
+    with c1:
+        n = p_esq[0]
+        if n <= total_lugares:
+            if st.button(f"{n}", key=f"p{n}", type="primary" if n in st.session_state.ocupadas else "secondary"):
+                if n in st.session_state.ocupadas: st.session_state.ocupadas.remove(n)
+                else: st.session_state.ocupadas.add(n)
+                st.rerun()
+    with c2:
+        n = p_esq[1]
+        if n <= total_lugares:
+            if st.button(f"{n}", key=f"p{n}", type="primary" if n in st.session_state.ocupadas else "secondary"):
+                if n in st.session_state.ocupadas: st.session_state.ocupadas.remove(n)
+                else: st.session_state.ocupadas.add(n)
+                st.rerun()
 
-# Renderiza o HTML no App
-components.html(html_code, height=fileiras * 55)
+    with corr:
+        st.write(" ") # O corredor
+
+    with c3:
+        n = p_dir[0]
+        if n <= total_lugares:
+            if st.button(f"{n}", key=f"p{n}", type="primary" if n in st.session_state.ocupadas else "secondary"):
+                if n in st.session_state.ocupadas: st.session_state.ocupadas.remove(n)
+                else: st.session_state.ocupadas.add(n)
+                st.rerun()
+    with c4:
+        n = p_dir[1]
+        if n <= total_lugares:
+            if st.button(f"{n}", key=f"p{n}", type="primary" if n in st.session_state.ocupadas else "secondary"):
+                if n in st.session_state.ocupadas: st.session_state.ocupadas.remove(n)
+                else: st.session_state.ocupadas.add(n)
+                st.rerun()
 
 st.divider()
-st.subheader(f"Total Ocupadas: {len(st.session_state.ocupadas)}")
-
-if st.button("🗑️ Resetar Contagem"):
-    st.session_state.ocupadas = []
+if st.button("🗑️ Limpar Tudo", use_container_width=True):
+    st.session_state.ocupadas = set()
     st.rerun()
