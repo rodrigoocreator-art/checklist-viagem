@@ -1,52 +1,79 @@
 import streamlit as st
 
-# Configuração da página para parecer um App
-st.set_page_config(page_title="Checklist de Frota", layout="centered")
+# Configuração para aproveitar melhor a tela do celular
+st.set_page_config(page_title="Checklist Bus", layout="centered")
 
-st.title("🚌 Conferência de Poltronas")
-st.write("Selecione as poltronas ocupadas conforme a inspeção:")
+# CSS para deixar os botões menores e quadrados (estilo poltrona)
+st.markdown("""
+    <style>
+    div.stButton > button {
+        width: 100%;
+        height: 45px;
+        padding: 0px;
+        margin: 0px;
+        font-size: 14px;
+    }
+    [data-testid="column"] {
+        padding: 1px !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
-# 1. Seleção do tipo de ônibus
-tipo_onibus = st.selectbox("Tipo de Frota", ["42 Lugares", "46 Lugares", "50 Lugares"])
-total_lugares = int(tipo_onibus.split()[0])
+st.title("🚌 Conferência")
 
-# 2. Criando o Mapa de Poltronas
-# Usamos o estado da sessão para manter os cliques salvos
 if 'ocupadas' not in st.session_state:
     st.session_state.ocupadas = set()
 
-cols = st.columns(4) # Simula o corredor do ônibus (2 poltronas de cada lado)
+# Configuração da Frota
+tipo_onibus = st.selectbox("Frota", ["42 Lugares", "46 Lugares", "50 Lugares"])
+total_lugares = int(tipo_onibus.split()[0])
 
-for i in range(1, total_lugares + 1):
-    col_idx = (i-1) % 4
-    with cols[col_idx]:
-        # Botão para cada poltrona
-        label = f"P{i}"
-        is_selected = i in st.session_state.ocupadas
+st.write(f"**Ocupadas: {len(st.session_state.ocupadas)}**")
+
+# Criando o layout do ônibus (Janela | Corredor | Janela)
+# Usamos 5 colunas: Janela(1), Corredor(2), Janela(4), Janela(5)
+# A coluna 3 (índice 2) será o corredor vazio
+
+st.caption("Frente do Ônibus")
+
+# Calcula quantas fileiras são necessárias
+fileiras = (total_lugares // 4) + (1 if total_lugares % 4 != 0 else 0)
+
+for f in range(fileiras):
+    cols = st.columns([1, 1, 0.5, 1, 1]) # Coluna do meio é o corredor
+    
+    # Mapeamento das poltronas para o layout 2x2
+    posicoes = [0, 1, 3, 4] # Pula o índice 2 (corredor)
+    
+    for i, pos in enumerate(posicoes):
+        num_poltrona = f * 4 + i + 1
         
-        if st.button(label, key=f"btn_{i}", type="primary" if is_selected else "secondary"):
-            if is_selected:
-                st.session_state.ocupadas.remove(i)
-            else:
-                st.session_state.ocupadas.add(i)
-            st.rerun()
+        if num_poltrona <= total_lugares:
+            with cols[pos]:
+                is_selected = num_poltrona in st.session_state.ocupadas
+                label = f"{num_poltrona}"
+                
+                if st.button(label, key=f"p_{num_poltrona}", type="primary" if is_selected else "secondary"):
+                    if is_selected:
+                        st.session_state.ocupadas.remove(num_poltrona)
+                    else:
+                        st.session_state.ocupadas.add(num_poltrona)
+                    st.rerun()
 
 st.divider()
 
-# 3. Resumo e Contador
-contagem_atual = len(st.session_state.ocupadas)
-st.metric("Total de Ocupadas", contagem_atual)
+# Finalização
+manifesto = st.number_input("Qtd. no Manifesto", min_value=0, step=1)
 
-# 4. Validação
-manifesto = st.number_input("Qtd. no Manifesto (Papel)", min_value=0, step=1)
+c1, c2 = st.columns(2)
+with c1:
+    if st.button("✅ Finalizar"):
+        if len(st.session_state.ocupadas) == manifesto:
+            st.success("Conferência OK!")
+        else:
+            st.error(f"Erro: {len(st.session_state.ocupadas)} no App vs {manifesto} no Papel")
 
-if st.button("Finalizar Conferência"):
-    if contagem_atual == manifesto:
-        st.success(f"Conferência batida! {contagem_atual} passageiros.")
-        # Aqui no futuro enviamos para o seu banco de dados
-    else:
-        st.error(f"Divergência detectada! No App: {contagem_atual} | No Manifesto: {manifesto}")
-
-if st.button("Limpar Tudo"):
-    st.session_state.ocupadas = set()
-    st.rerun()
+with c2:
+    if st.button("🗑️ Limpar"):
+        st.session_state.ocupadas = set()
+        st.rerun()
